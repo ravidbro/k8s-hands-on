@@ -1,0 +1,188 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-a
+  namespace: drill
+spec:
+  selector:
+    matchLabels:
+      app: service-a
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: service-a
+    spec:
+      serviceAccountName: drill-app
+      containers:
+      - name: service-a
+        image: docker.io/nginx:1.21.0-alpine
+        imagePullPolicy: Always
+        ports:
+        - name: liveness-port
+          containerPort: 80
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /index.html
+            port: liveness-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /index.html
+            port: liveness-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-a
+  namespace: drill
+spec:
+  type: ClusterIP
+  selector:
+    app: service-a
+  ports:
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: service-a-ingress
+  namespace: drill
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  tls:
+  - hosts:
+    - ravid-test-ingress.westus2.cloudapp.azure.com
+    secretName: tls-secret
+  rules:
+  - http:
+      paths:
+      - path: /service-A(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: service-a
+            port:
+              number: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-b
+  namespace: drill
+spec:
+  selector:
+    matchLabels:
+      app: service-b
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: service-b
+    spec:
+      serviceAccountName: drill-app
+      containers:
+      - name: service-b
+        image: docker.io/bravid99/bitcoinrate:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http-port
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /ready
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-b
+  namespace: drill
+spec:
+  type: ClusterIP
+  selector:
+    app: service-b
+  ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: service-b-ingress
+  namespace: drill
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls:
+  - hosts:
+    - ravid-test-ingress.westus2.cloudapp.azure.com
+    secretName: tls-secret
+  rules:
+  - http:
+      paths:
+      - path: /service-B(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: service-b
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-a-block
+  namespace: drill
+spec:
+  podSelector:
+    matchLabels:
+      app: service-a
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - {}
+  egress:
+  - to:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: NotIn
+          values: ["service-b"]
+ 

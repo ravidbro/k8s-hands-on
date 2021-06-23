@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: drill
+  name: no-permissions
+rules: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: drill-app
+  namespace: drill
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: no-permissions
+  namespace: drill
+subjects:
+- kind: ServiceAccount
+  name: drill-app
+roleRef:
+  kind: Role
+  name: no-permissions
+  apiGroup: rbac.authorization.k8s.io
