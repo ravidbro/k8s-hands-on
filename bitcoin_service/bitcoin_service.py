@@ -45,7 +45,6 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_response(HTTPStatus.CONFLICT)
         else:
             self.send_response(HTTPStatus.NOT_FOUND)
-        # self.send_header("Content-type", "text/plain")
         self.end_headers()
 
 
