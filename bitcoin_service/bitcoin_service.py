@@ -16,14 +16,14 @@ READY_FILENAME = "/var/bitcoin/ready"
 
 def print_bitcoin_rate():
     while True:
-        last_rates = []
+        total = 0
         for i in range(AVERAGE_INTERVAL):
             data = urllib3.PoolManager().request("GET", "https://api.coindesk.com/v1/bpi/currentprice.json").data
             current_rate = json.loads(data)['bpi']['USD']['rate_float']
             print("Current rate: %.2f" % current_rate)
-            last_rates.append(current_rate)
+            total += current_rate
             time.sleep(60)
-        print("Average rate of last %d minutes: %.2f" % (AVERAGE_INTERVAL, sum(last_rates)/len(last_rates)))
+        print("Average rate of last %d minutes: %.2f" % (AVERAGE_INTERVAL, total/AVERAGE_INTERVAL))
 
 
 def change_to_ready():
