@@ -8,4 +8,4 @@ RUN pip install urllib3
 
 COPY bitcoin_service.py /app/
 
-ENTRYPOINT ["/usr/local/bin/python", "/app/bitcoin_service.py"]
+ENTRYPOINT ["/usr/local/bin/python", "-u", "/app/bitcoin_service.py"]
